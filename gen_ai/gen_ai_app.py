@@ -70,6 +70,40 @@ df = pd.DataFrame({
 })
 print(df)
                         """
+                    if st.session_state.industry_name.lower() =="banking":
+                        st.session_state.synthetic_data = """
+import pandas as pd
+import numpy as np
+import uuid
+ 
+n_rows = 200
+ 
+df = pd.DataFrame({
+    'transaction_id': [str(uuid.uuid4()) for _ in range(n_rows)],
+    'account_id': [f"AA{np.random.randint(10000000, 99999999)}" for _ in range(n_rows)],
+    'customer_id': np.random.randint(100000, 999999, size=n_rows),
+    'transaction_date': pd.to_datetime(np.random.choice(pd.date_range('2022-01-01', '2024-01-01'), size=n_rows)),
+    'transaction_type': np.random.choice(['deposit', 'withdrawal', 'transfer', 'payment', 'purchase'], size=n_rows, p=[0.4, 0.3, 0.2, 0.08, 0.02]),
+    'transaction_amount': np.round(np.random.lognormal(np.log(500), np.log(2), size=n_rows) + 0.01, 2),  # Log-normal distribution
+    'currency': np.random.choice(['USD', 'EUR', 'GBP', 'JPY', 'CAD'], size=n_rows),
+    'balance_after_transaction': np.zeros(n_rows, dtype=float), # Placeholder, calculated later
+    'transaction_location': np.random.choice(['branch', 'ATM', 'online', 'mobile'], size=n_rows),
+    'fraud_flag': np.random.choice([True, False], size=n_rows, p=[0.01, 0.99])
+})
+ 
+ 
+# Calculate balance_after_transaction, simulating a running balance.
+balance = 1000  # Starting balance
+for i in range(n_rows):
+    amount = df.iloc[i]['transaction_amount']
+    if df.iloc[i]['transaction_type'] == 'deposit':
+        balance += amount
+    else:
+        balance -= amount
+    df.at[i, 'balance_after_transaction'] = np.round(balance, 2)
+ 
+print(df)
+                        """
                     else:
                             st.session_state.synthetic_data = """
                             import pandas as pd
