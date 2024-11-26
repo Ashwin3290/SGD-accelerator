@@ -81,14 +81,14 @@ print(df)
                     if match:
                         st.session_state.synthetic_data = match.group(1).strip()
                     
-                    with open('genai/session_files/run.py', 'w') as file:
-                        st.session_state.synthetic_data = st.session_state.synthetic_data + "\ndf.to_csv('genai/session_files/generated_data_industry.csv', index = False)"
+                    with open('run.py', 'w') as file:
+                        st.session_state.synthetic_data = st.session_state.synthetic_data + "\ndf.to_csv('generated_data_industry.csv', index = False)"
                         file.write(st.session_state.synthetic_data)
             
         if st.session_state.synthetic_data:                  
             if st.button("Show Generated Data") :
                 try:
-                    result = subprocess.run([sys.executable, 'genai/session_files/run.py'],
+                    result = subprocess.run([sys.executable, 'run.py'],
                                         capture_output=True,
                                         text=True)
                     
@@ -98,7 +98,7 @@ print(df)
                         # st.code(result.stdout)
                         
                         try:
-                            df = pd.read_csv("genai/session_files/generated_data_industry.csv")
+                            df = pd.read_csv("generated_data_industry.csv")
                             # print(df)
                             # st.write("Data as DataFrame:")
                             st.dataframe(df, width=10000, height=500)
@@ -110,7 +110,7 @@ print(df)
                         st.code(result.stderr)
                         
                 except Exception as e:
-                    st.error(f"Error executing genai/session_files/run.py: {str(e)}")
+                    st.error(f"Error executing run.py: {str(e)}")
 
                                 
 
@@ -138,10 +138,10 @@ print(df)
                     match = re.search(r"```(?:python)?\n(.*?)```", str(st.session_state.generation_result['generation_code'].raw), re.DOTALL | re.IGNORECASE)
                     if match:
                         st.session_state.generation_result["generation_code"] = match.group(1).strip()
-                    with open('genai/session_files/comparison.txt', 'w') as file:
+                    with open('comparison.txt', 'w') as file:
                         file.write(st.session_state.generation_result['comparison'].raw)
-                    with open('genai/session_files/run.py', 'w') as file:
-                        st.session_state.generation_result["generation_code"] = st.session_state.generation_result["generation_code"].raw + "\ngenerated_data.to_csv('genai/session_files/generated_data.csv', index = False)"
+                    with open('run.py', 'w') as file:
+                        st.session_state.generation_result["generation_code"] = st.session_state.generation_result["generation_code"].raw + "\ngenerated_data.to_csv('generated_data.csv', index = False)"
                         file.write(f"{st.session_state.generation_result['generation_code']}")
                     
                     st.session_state.comparison_data = st.session_state.generation_result['comparison'].raw
@@ -155,7 +155,7 @@ print(df)
 
             if st.session_state.show_generated_code:
                 try:
-                    result = subprocess.run([sys.executable, 'genai/session_files/run.py'],
+                    result = subprocess.run([sys.executable, 'run.py'],
                                         capture_output=True,
                                         text=True)
                     
@@ -165,7 +165,7 @@ print(df)
                         # st.code(result.stdout)
                         
                         try:
-                            df = pd.read_csv("genai/session_files/generated_data.csv")
+                            df = pd.read_csv("generated_data.csv")
                             # print(df)
                             st.write("Data as DataFrame:")
                             st.dataframe(df, width=10000, height=500)
@@ -177,13 +177,13 @@ print(df)
                         st.code(result.stderr)
                         
                 except Exception as e:
-                    st.error(f"Error executing genai/session_files/run.py: {str(e)}")
+                    st.error(f"Error executing run.py: {str(e)}")
             
             st.subheader("Comparison Results:")
             st.download_button(
                 label="Download Comparison Results",
                 data=st.session_state.comparison_data,
-                file_name="genai/session_files/comparison.txt",
+                file_name="comparison.txt",
                 mime="text/plain"
             )
             

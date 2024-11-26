@@ -378,16 +378,16 @@ Example format:
         if match:
             pandas_code = match.group(1).strip()
         # # Save the generated code
-        self.save_code_to_file(pandas_code, f"genai/session_files/{self.industry}_synthetic_data.py")
+        self.save_code_to_file(pandas_code, f"{self.industry}_synthetic_data.py")
         
         # # Execute the pandas code
-        error = self.execute_pandas_code(f"genai/session_files/{self.industry}_synthetic_data.py")
+        error = self.execute_pandas_code(f"{self.industry}_synthetic_data.py")
         if error:
             return 0
         while error and attempts < self.max_retries:
             # Log the error
             print("****************",attempts,"**************************")
-            self.save_output_to_log(error, f"genai/session_files/{self.industry}_errors.log")
+            self.save_output_to_log(error, f"{self.industry}_errors.log")
             logger.info(f"Attempt {attempts + 1} failed. Regenerating code...")
             # Regenerate code with error context
             pandas_code = self.regenerate_with_error_context(error,pandas_code)
@@ -396,9 +396,9 @@ Example format:
             match = re.search(r"```(?:python)?\n(.*?)```", str(result.raw), re.DOTALL | re.IGNORECASE)
             if match:
               pandas_code = match.group(1).strip()
-            self.save_code_to_file(pandas_code, f"genai/session_files/{self.industry}_synthetic_data.py")
+            self.save_code_to_file(pandas_code, f"{self.industry}_synthetic_data.py")
             print("*************************************************************************************************")
-            error = self.execute_pandas_code(f"genai/session_files/{self.industry}_synthetic_data.py")
+            error = self.execute_pandas_code(f"{self.industry}_synthetic_data.py")
             attempts += 1          
         logger.info("Successfully generated and executed synthetic data")
         return pandas_code
