@@ -1,6 +1,6 @@
 from sdv.multi_table import HMASynthesizer
 from sdv.metadata import MultiTableMetadata
-from base import BaseSynthesizer
+from gan.base import BaseSynthesizer
 from typing import Dict, Any, List
 import pandas as pd
 

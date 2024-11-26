@@ -5,16 +5,17 @@ from typing import Dict, Type, Any, List
 import pandas as pd
 import numpy as np
 from sdv.metadata import SingleTableMetadata
-from sdv.evaluation.single_table import evaluate_quality, get_column_plot, get_column_pair_plot
+from sdv.evaluation.single_table import evaluate_quality, get_column_plot, get_column_pair_plot, run_diagnostic
 import json
-from base import BaseSynthesizer
+from gan.base import BaseSynthesizer
+
 
 class SynthesizerRegistry:
     """
     Registry for managing and discovering available synthetic data generators
     """
     
-    def __init__(self, synthesizers_dir: str = "synthesizers"):
+    def __init__(self, synthesizers_dir: str = "gan\synthesizers"):
         """
         Initialize the synthesizer registry
         
@@ -211,9 +212,9 @@ class MultiTableSynthesisCoordinator:
         """
         metadata = SingleTableMetadata()
         metadata.detect_from_dataframe(data=df)
-        
- 
-            
+        for column_name, column_metadata in metadata.columns.items():
+                if column_metadata['sdtype'] == 'unknown':
+                    metadata.update_column(column_name, sdtype='categorical')
         # Set primary key if exists
         if table_name in self.table_relationships['primary_keys']:
             pk_col = self.table_relationships['primary_keys'][table_name]
@@ -337,6 +338,17 @@ class MultiTableSynthesisCoordinator:
             synthesizer_dir = os.path.join(directory, table_name)
             os.makedirs(synthesizer_dir, exist_ok=True)
             synthesizer.save(os.path.join(synthesizer_dir, "synthesizer.pkl"))
+            
+            # Save diagnostic reports if available
+            if hasattr(synthesizer, 'reports') and 'diagnostic_report' in synthesizer.reports:
+                diagnostic_dir = os.path.join(synthesizer_dir, "diagnostics")
+                os.makedirs(diagnostic_dir, exist_ok=True)
+                
+                diagnostic_report = synthesizer.reports['diagnostic_report']
+                
+                validity_details = diagnostic_report.get_details('Data Validity')
+                
+                structure_details = diagnostic_report.get_details('Data Structure')
         
         # Save relationships and metadata
         with open(os.path.join(directory, "relationships.json"), "w") as f:
@@ -394,14 +406,14 @@ class SynthesizerManager:
     
     def handle_multi_table(self, tables: Dict[str, pd.DataFrame], synthesizer_name: str, num_samples: int) -> Dict[str, Any]:
         """Handle multi-table synthesis"""
-        from synthetic import MultiTableSynthesisCoordinator
         
         coordinator = MultiTableSynthesisCoordinator(self.registry)
         synthesizer_choices = {name: synthesizer_name for name in tables.keys()}
         
         coordinator.setup_synthesizers(tables, synthesizer_choices=synthesizer_choices)
+        print("2")
         coordinator.train(tables)
-        
+        print("1")
         synthetic_tables = coordinator.generate(num_samples)
         
         return {
@@ -409,9 +421,14 @@ class SynthesizerManager:
             'reports': self._generate_multi_table_reports(tables, synthetic_tables)
         }
     def _generate_multi_table_reports(self, original_tables: Dict[str, pd.DataFrame], 
-                                    synthetic_tables: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
+                                synthetic_tables: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
         """Generate reports for multi-table synthesis with robust error handling"""
-        table_analysis_reports = {'quality_report': {'tables': {}}}
+        
+        
+        table_analysis_reports = {
+            'quality_report': {'tables': {}},
+            'diagnostic_report': {'tables': {}}
+        }
         
         for table_identifier in original_tables.keys():
             original_dataset = original_tables[table_identifier]
@@ -420,7 +437,27 @@ class SynthesizerManager:
             # Get metadata for current table
             table_metadata = SingleTableMetadata()
             table_metadata.detect_from_dataframe(data=original_dataset)
+            for column_name, column_metadata in table_metadata.columns.items():
+                if column_metadata['sdtype'] == 'unknown':
+                    table_metadata.update_column(column_name, sdtype='categorical')
             
+            # Run diagnostic report
+            try:
+                diagnostic_result = run_diagnostic(
+                    real_data=original_dataset,
+                    synthetic_data=synthetic_dataset,
+                    metadata=table_metadata
+                )
+                properties= diagnostic_result.get_properties().to_dict()
+                table_analysis_reports['diagnostic_report']['tables'][table_identifier] = {
+                    'validity_details': diagnostic_result.get_details('Data Validity'),
+                    'structure_details': diagnostic_result.get_details('Data Structure'),
+                    'validity_score': properties['Score'][0],
+                    'structure_score': properties['Score'][1]
+
+                }
+            except Exception as error_msg:
+                print(f"Skipping diagnostic for table {table_identifier} due to: {str(error_msg)}")
             # Filter columns excluding sensitive data types
             column_metadata = table_metadata.columns
             analysis_columns = []
@@ -429,7 +466,7 @@ class SynthesizerManager:
                     analysis_columns.append(column_name)
             
             current_table_report = {
-                'quality_metrics': evaluate_quality(original_dataset, synthetic_dataset,table_metadata),
+                'quality_metrics': evaluate_quality(original_dataset, synthetic_dataset, table_metadata),
                 'column_plots': {},
                 'pair_plots': {}
             }
@@ -445,7 +482,6 @@ class SynthesizerManager:
                     print(f"Skipping column plot for {column_name} due to: {str(error_msg)}")
                     continue
             
-            # Generate pair plots with error handling
             for first_col_index in range(len(analysis_columns)):
                 for second_col_index in range(first_col_index + 1, len(analysis_columns)):
                     first_column = analysis_columns[first_col_index]

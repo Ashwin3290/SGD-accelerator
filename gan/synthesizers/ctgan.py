@@ -1,5 +1,5 @@
 from sdv.single_table import CTGANSynthesizer
-from base import BaseSynthesizer
+from gan.base import BaseSynthesizer
 from typing import Dict, Type, Any, List
 
 class CTGAN(BaseSynthesizer):

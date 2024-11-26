@@ -1,7 +1,7 @@
 from sdv.sequential import PARSynthesizer
 from typing import Dict, Any, List
 import pandas as pd
-from base import BaseSynthesizer
+from gan.base import BaseSynthesizer
 
 class PAR(BaseSynthesizer):
     """Specific implementation for PAR (Parallel Auto-Regressive) Synthesizer for sequential data"""

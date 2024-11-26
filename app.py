@@ -3,10 +3,10 @@ import gan.gan_app as gan
 import gen_ai.gen_ai_app as genai
 
 st.set_page_config(
-    page_title="SDG Accelerator",
+    page_title="Test data management system",
     layout="wide"
 )
-st.title("Synthetic Data Generator")
+st.title("Test data management system")
 st.markdown("""
     <style>
     /* Global Styles */

@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Type, Any, List
 from sdv.metadata import SingleTableMetadata
-from sdv.evaluation.single_table import evaluate_quality, get_column_plot, get_column_pair_plot
+from sdv.evaluation.single_table import evaluate_quality, get_column_plot, get_column_pair_plot,run_diagnostic
 from itertools import combinations
 
 class BaseSynthesizer:
@@ -108,21 +108,32 @@ class BaseSynthesizer:
             'reports': {}
         }
         
-        # Single table evaluation
+        # Add diagnostic report
+        diagnostic_report = run_diagnostic(
+            real_data=self.original_data,
+            synthetic_data=synthetic_data,
+            metadata=self.metadata
+        )
+        results['reports']['diagnostic_report'] = diagnostic_report
         
+        # Quality evaluation
         quality_report = self.evaluate(self.original_data, synthetic_data)
         results['reports']['quality_report'] = quality_report
         
-        columns= self.metadata.columns
-        columns=[col for col in columns if columns[col]['sdtype'] not in ['id',"first_name","last_name","email","phone_number"] ]
+        # Column plots
+        columns = self.metadata.columns
+        columns = [col for col in columns if columns[col]['sdtype'] not in ['id', "first_name", "last_name", "email", "phone_number"]]
         results['reports']['column_plots'] = {
-            col: get_column_plot(self.original_data, synthetic_data, column_name=col,metadata=self.metadata) 
+
+            col: get_column_plot(self.original_data, synthetic_data, column_name=col, metadata=self.metadata) 
             for col in columns
         }
         
-        # Generate pair plots for numeric columns
+
+        # Pair plots
         results['reports']['pair_plots'] = {
-            f"{col1}_{col2}": get_column_pair_plot(self.original_data, synthetic_data,column_names=[col1,col2],metadata=self.metadata)
+
+            f"{col1}_{col2}": get_column_pair_plot(self.original_data, synthetic_data, column_names=[col1, col2], metadata=self.metadata)
             for col1, col2 in combinations(columns, 2)
         }
     
@@ -131,25 +142,35 @@ class BaseSynthesizer:
     def save_results(self, results, output_dir: str):
         """
         Save synthetic data and evaluation results
-        
+
+    
         Args:
             results (dict): Results from generate_and_evaluate
             output_dir (str): Directory to save results
         """
         os.makedirs(output_dir, exist_ok=True)
-        
+    
         # Save synthetic data
         if self.table_type == 'multi':
             for table_name, df in results['synthetic_data'].items():
                 df.to_csv(f"{output_dir}/{table_name}_synthetic.csv", index=False)
         else:
             results['synthetic_data'].to_csv(f"{output_dir}/synthetic_data.csv", index=False)
-        
+    
         # Save reports
         if 'reports' in results:
+            # Save diagnostic report
+            diagnostic_report = results['reports']['diagnostic_report']
+            diagnostic_report.save(f"{output_dir}/diagnostic_report.json")
+        
+            # Save data validity details
+            validity_details = diagnostic_report.get_details('Data Validity')
+            validity_details.to_csv(f"{output_dir}/validity_details.csv")
+        
+            # Save quality report
             quality_report = results['reports']['quality_report']
             quality_report.save(f"{output_dir}/quality_report.json")
-            
+        
             # Save visualizations
             for plot_type, plots in results['reports'].items():
                 if plot_type in ['column_plots', 'pair_plots']:

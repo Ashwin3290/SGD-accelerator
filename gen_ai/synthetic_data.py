@@ -7,9 +7,9 @@ import numpy as np
 import os ,re
 
 os.environ["HUGGINGFACEHUB_API_TOKEN"]="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"
-os.environ['GROQ_API_KEY'] = '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'
+os.environ['GROQ_API_KEY'] = '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'
 llm = LLM(
-    model="groq/llama3-70b-8192",
+    model="groq/llama3-8b-8192",
     temperature=0.15,
     base_url="https://api.groq.com/openai/v1",
     api_key=os.environ['GROQ_API_KEY']
@@ -308,7 +308,7 @@ class DataGenerationPipeline:
             fake = Faker()
             # ... rest of the code ...
             generated_data = pd.DataFrame(data)
-            print(generated_data.head())
+            print(generated_data)
             ''',
             expected_output='''A string containing complete Python code that generates a pandas DataFrame''',
             agent=generator_agent
